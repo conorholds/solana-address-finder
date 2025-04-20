@@ -103,7 +103,7 @@ To make changes:
 
 - [Solana ATA Documentation](https://spl.solana.com/associated-token-account)
 - [Solana PDA Documentation](https://solana.com/docs/core/pda)
-- [Solana Web3.js](https://solana-labs.github.io/solana-web3.js/)
+- [Solana Web3.js](https://solana.com/docs/clients/javascript)
 
 ## License
 
