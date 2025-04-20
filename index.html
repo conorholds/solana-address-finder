@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solana Address Finder</title>
+    <meta
+      name="description"
+      content="Developer tool to derive Solana addresses for associated token accounts (ATAs) and program derived accounts (PDAs)."
+    />
+    <link rel="icon" type="image/png" href="./favicon.ico" />
+    <link rel="stylesheet" href="./style.css" />
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+    <script src="https://unpkg.com/@solana/spl-token@0.3.8/lib/index.iife.min.js"></script>
+    <script src="./main.js"></script>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Solana Address Finder</h1>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('ata-tab')">
+          💰 ATA Finder
+        </div>
+        <div class="tab" onclick="switchTab('pda-tab')">🤖 PDA Finder</div>
+      </div>
+
+      <!-- ATA Finder Tab -->
+      <div id="ata-tab" class="tab-content active">
+        <p>
+          Derive an Associated Token Account (ATA) on Solana by providing a
+          wallet address and token mint.
+        </p>
+
+        <div class="form-group">
+          <label for="walletAddress">Wallet Address (Owner)</label>
+          <input
+            type="text"
+            id="walletAddress"
+            placeholder="Enter wallet address"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="mintAddress">Token Mint Address</label>
+          <input
+            type="text"
+            id="mintAddress"
+            placeholder="Enter token mint address"
+          />
+        </div>
+
+        <button onclick="deriveATA()">Derive ATA</button>
+
+        <div id="ata-result" class="result">
+          <div>
+            <label>Associated Token Account:</label>
+          </div>
+          <div id="ata-result-address" class="result-address"></div>
+        </div>
+
+        <div id="ata-error" class="error"></div>
+
+        <div class="footer">
+          <p>Using @solana/web3.js to derive Solana addresses</p>
+          <p>
+            <a class="info-link" onclick="openATAModal()"
+              >Explain how Solana ATAs work</a
+            >
+          </p>
+        </div>
+      </div>
+
+      <!-- PDA Finder Tab -->
+      <div id="pda-tab" class="tab-content">
+        <p>
+          Derive a Program Derived Address (PDA) on Solana by providing seeds
+          and a program ID.
+        </p>
+
+        <div class="form-group">
+          <label for="programId">Program ID</label>
+          <input type="text" id="programId" placeholder="Enter program ID" />
+        </div>
+
+        <div class="form-group">
+          <label>Seeds</label>
+          <div id="seedContainer" class="seed-container">
+            <!-- Seeds will be added here -->
+          </div>
+          <button class="add-seed-btn" onclick="addSeed()">+ Add Seed</button>
+        </div>
+
+        <button onclick="derivePDA()">Derive PDA</button>
+
+        <div id="pda-result" class="result">
+          <div>
+            <label>Program Derived Address:</label>
+          </div>
+          <div id="pda-result-address" class="result-address"></div>
+          <div style="margin-top: 20px">
+            <label>Bump Seed:</label>
+            <span id="pda-bump" class="result-address"></span>
+          </div>
+        </div>
+
+        <div id="pda-error" class="error"></div>
+
+        <div class="footer">
+          <p>Using @solana/web3.js to derive Solana addresses</p>
+          <p>
+            <a class="info-link" onclick="openPDAModal()"
+              >Explain how Solana PDAs work</a
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ATA Modal -->
+    <div id="ata-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('ata-modal')">&times;</span>
+        <h2>Associated Token Accounts (ATAs)</h2>
+        <p>
+          An Associated Token Account (ATA) is a deterministically derived
+          account address that holds tokens for a specific wallet owner.
+        </p>
+
+        <h3>Key Points:</h3>
+        <ul style="margin-left: 20px; margin-bottom: 15px">
+          <li style="margin: 5px 0">
+            ATAs provide a standard way to find a user's token account for any
+            specific token mint
+          </li>
+          <li style="margin: 5px 0">
+            Each wallet can have one ATA per token mint
+          </li>
+          <li style="margin: 5px 0">
+            ATAs eliminate the need to track multiple token account addresses
+          </li>
+          <li style="margin: 5px 0">
+            ATAs can be created by anyone on behalf of a wallet owner
+          </li>
+        </ul>
+
+        <h3>How ATAs are Derived:</h3>
+        <p>
+          The ATA address is derived using a Program Derived Address (PDA) with
+          these seeds:
+        </p>
+        <pre><code>seeds = [
+  walletAddress.toBuffer(),
+  TOKEN_PROGRAM_ID.toBuffer(),
+  mintAddress.toBuffer()
+]
+
+ATA = findProgramAddress(seeds, ASSOCIATED_TOKEN_PROGRAM_ID)</code></pre>
+
+        <p>The derivation uses these constants:</p>
+        <ul style="margin-left: 20px; margin-bottom: 15px">
+          <li style="margin: 5px 0">
+            TOKEN_PROGRAM_ID:
+            <code>TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</code>
+          </li>
+          <li style="margin: 5px 0">
+            ASSOCIATED_TOKEN_PROGRAM_ID:
+            <code>ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL</code>
+          </li>
+        </ul>
+
+        <p>
+          For more information, see the
+          <a
+            href="https://spl.solana.com/associated-token-account"
+            target="_blank"
+            ref="noopener"
+            >official Solana documentation</a
+          >.
+        </p>
+      </div>
+    </div>
+
+    <!-- PDA Modal -->
+    <div id="pda-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-btn" onclick="closeModal('pda-modal')">&times;</span>
+        <h2>Program Derived Addresses (PDAs)</h2>
+        <p>
+          Program Derived Addresses (PDAs) are special addresses on Solana that
+          have no corresponding private key and can only be signed for by a
+          program.
+        </p>
+
+        <h3>Key Points:</h3>
+        <ul style="margin-left: 20px; margin-bottom: 15px">
+          <li style="margin: 5px 0">
+            PDAs are deterministically derived using seeds and a program ID
+          </li>
+          <li style="margin: 5px 0">
+            PDAs do not lie on the Ed25519 curve, so they have no private key
+          </li>
+          <li style="margin: 5px 0">
+            Only the program that derived a PDA can sign for it
+          </li>
+          <li style="margin: 5px 0">
+            PDAs allow programs to control accounts without needing a private
+            key
+          </li>
+          <li style="margin: 5px 0">
+            They enable deterministic address derivation for finding accounts
+          </li>
+        </ul>
+
+        <h3>How PDAs are Derived:</h3>
+        <p>
+          PDAs are derived by finding an address that falls off the Ed25519
+          curve:
+        </p>
+        <pre><code>// Try bump seeds starting from 255 and decreasing
+for (let bump = 255; bump >= 0; bump--) {
+  try {
+    // Hash the seeds + bump + program ID
+    address = hash(seeds, [bump], programId)
+    
+    // Check if the address is off-curve (valid PDA)
+    if (!isOnCurve(address)) {
+      return [address, bump]
+    }
+  } catch (e) {
+    // Continue to next bump seed
+  }
+}</code></pre>
+
+        <p>
+          The first valid bump seed found (starting from 255) is called the
+          "canonical bump".
+        </p>
+
+        <p>
+          For more information, see the
+          <a
+            href="https://solana.com/docs/core/pda"
+            target="_blank"
+            ref="noopener"
+            >official Solana documentation</a
+          >.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
