@@ -67,11 +67,6 @@ PDAs are derived following these steps:
 2. Call `findProgramAddress` with the seeds and program ID
 3. Return both the address and the canonical bump seed
 
-## Libraries Used
-
-- `@solana/web3.js` - The main Solana JavaScript SDK
-- `@solana/spl-token` - SPL Token Program client library
-
 ## Usage Example
 
 ### Finding an ATA
@@ -89,15 +84,6 @@ To find a Program Derived Address:
 1. Enter the program ID
 2. Add seeds in the correct order
 3. Click "Calculate PDA"
-
-## Development
-
-The application is entirely client-side and contains a single HTML file with embedded CSS and JavaScript.
-
-To make changes:
-
-- Modify the HTML, CSS, or JavaScript in the `index.html` file
-- Use locally by opening the file in a browser
 
 ## Further Reading
 
