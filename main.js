@@ -60,7 +60,17 @@ function addSeed() {
   seedRow.className = "seed-row";
   seedRow.innerHTML = `
             <div class="seed-input">
-                <input type="text" class="seed" placeholder="Enter seed (text or public key)">
+                <input type="text" class="seed" placeholder="(text, public key, or number)">
+            </div>
+            <div class="seed-type">
+                <select class="seed-type-select">
+                    <option value="text">Text</option>
+                    <option value="pubkey">Public Key</option>
+                    <option value="uint8">uint8 (1 byte)</option>
+                    <option value="uint16">uint16 (2 bytes)</option>
+                    <option value="uint32">uint32 (4 bytes)</option>
+                    <option value="uint64">uint64 (8 bytes)</option>
+                </select>
             </div>
             <button class="btn-small" onclick="removeSeed(this)">✕</button>
         `;
@@ -73,6 +83,44 @@ function removeSeed(button) {
   if (seedContainer.children.length > 1) {
     button.parentElement.remove();
   }
+}
+
+// Convert number to bytes based on selected type
+function numberToBytes(value, type) {
+  let buffer;
+  let view;
+  const num = parseInt(value, 10);
+
+  switch (type) {
+    case "uint8":
+      buffer = new ArrayBuffer(1);
+      view = new DataView(buffer);
+      view.setUint8(0, num);
+      break;
+    case "uint16":
+      buffer = new ArrayBuffer(2);
+      view = new DataView(buffer);
+      view.setUint16(0, num, true); // true for little-endian
+      break;
+    case "uint32":
+      buffer = new ArrayBuffer(4);
+      view = new DataView(buffer);
+      view.setUint32(0, num, true);
+      break;
+    case "uint64":
+      buffer = new ArrayBuffer(8);
+      view = new DataView(buffer);
+      const bigInt = BigInt(num);
+      // Writing a BigInt to the view
+      for (let i = 0; i < 8; i++) {
+        view.setUint8(i, Number((bigInt >> BigInt(i * 8)) & BigInt(0xff)));
+      }
+      break;
+    default:
+      throw new Error(`Unsupported number type: ${type}`);
+  }
+
+  return new Uint8Array(buffer);
 }
 
 // Derive an Associated Token Account
@@ -142,42 +190,68 @@ async function derivePDA() {
     }
 
     // Get seeds
-    const seedInputs = document.querySelectorAll(".seed");
+    const seedRows = document.querySelectorAll(".seed-row");
     const seeds = [];
 
-    for (const seedInput of seedInputs) {
+    console.log("Processing seeds...");
+
+    for (const row of seedRows) {
+      const seedInput = row.querySelector(".seed");
+      const seedTypeSelect = row.querySelector(".seed-type-select");
+
       const seedValue = seedInput.value.trim();
+      const seedType = seedTypeSelect.value;
+
       if (seedValue) {
-        // Check if it's a number
-        if (/^\d+$/.test(seedValue)) {
-          // It's a number, convert to little-endian bytes
-          const num = BigInt(seedValue);
-          const buffer = new Uint8Array(8); // 8 bytes for uint64
-          for (let i = 0; i < 8; i++) {
-            buffer[i] = Number((num >> BigInt(i * 8)) & BigInt(0xff));
-          }
-          seeds.push(buffer);
-          console.log("Number seed:", seedValue, "as bytes:", buffer);
+        console.log(`Processing seed "${seedValue}" of type "${seedType}"`);
+
+        let seedBuffer;
+
+        switch (seedType) {
+          case "text":
+            seedBuffer = new TextEncoder().encode(seedValue);
+            console.log("Text seed:", seedValue, "as bytes:", seedBuffer);
+            break;
+
+          case "pubkey":
+            try {
+              const pubkey = new solanaWeb3.PublicKey(seedValue);
+              seedBuffer = pubkey.toBuffer();
+              console.log("PublicKey seed:", seedValue);
+            } catch (e) {
+              showPDAError(`Invalid public key: ${seedValue}`);
+              return;
+            }
+            break;
+
+          case "uint8":
+          case "uint16":
+          case "uint32":
+          case "uint64":
+            if (!/^\d+$/.test(seedValue)) {
+              showPDAError(`Invalid number for ${seedType}: ${seedValue}`);
+              return;
+            }
+            try {
+              seedBuffer = numberToBytes(seedValue, seedType);
+              console.log(
+                `${seedType} seed:`,
+                seedValue,
+                "as bytes:",
+                seedBuffer
+              );
+            } catch (e) {
+              showPDAError(`Error converting number: ${e.message}`);
+              return;
+            }
+            break;
+
+          default:
+            showPDAError(`Unknown seed type: ${seedType}`);
+            return;
         }
-        // Check if it's likely a public key
-        else if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(seedValue)) {
-          try {
-            // Try as a public key
-            const pubkey = new solanaWeb3.PublicKey(seedValue);
-            seeds.push(pubkey.toBuffer());
-            console.log("PublicKey seed:", seedValue);
-          } catch (e) {
-            // Not a valid public key, use as text
-            const textBuffer = new TextEncoder().encode(seedValue);
-            seeds.push(textBuffer);
-            console.log("Text seed (looks like pubkey):", seedValue);
-          }
-        } else {
-          // Regular text
-          const textBuffer = new TextEncoder().encode(seedValue);
-          seeds.push(textBuffer);
-          console.log("Text seed:", seedValue);
-        }
+
+        seeds.push(seedBuffer);
       }
     }
 
