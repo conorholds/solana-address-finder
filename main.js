@@ -65,6 +65,7 @@ function addSeed() {
             <div class="seed-type">
                 <select class="seed-type-select">
                     <option value="text">Text</option>
+                    <option value="textToNumbers">32-Byte String</option>
                     <option value="pubkey">Public Key</option>
                     <option value="uint8">uint8 (1 byte)</option>
                     <option value="uint16">uint16 (2 bytes)</option>
@@ -121,6 +122,15 @@ function numberToBytes(value, type) {
   }
 
   return new Uint8Array(buffer);
+}
+
+// Convert string to array of ASCII values (for text to numbers option)
+function stringToAsciiArray(str) {
+  const asciiArray = [];
+  for (let i = 0; i < str.length; i++) {
+    asciiArray.push(str.charCodeAt(i));
+  }
+  return asciiArray;
 }
 
 // Derive an Associated Token Account
@@ -211,6 +221,31 @@ async function derivePDA() {
           case "text":
             seedBuffer = new TextEncoder().encode(seedValue);
             console.log("Text seed:", seedValue, "as bytes:", seedBuffer);
+            break;
+
+          case "textToNumbers":
+            try {
+              // Create a fixed-size 32-byte array initialized with zeros
+              const bytes = new Uint8Array(32);
+
+              // Fill in the characters of the string at the beginning
+              for (let i = 0; i < Math.min(seedValue.length, 32); i++) {
+                bytes[i] = seedValue.charCodeAt(i);
+              }
+
+              // The rest of the array is already zeros by default
+
+              seedBuffer = bytes;
+              console.log(
+                "32-Byte String seed:",
+                seedValue,
+                "as 32-byte array:",
+                seedBuffer
+              );
+            } catch (e) {
+              showPDAError(`Error processing 32-Byte String: ${e.message}`);
+              return;
+            }
             break;
 
           case "pubkey":
